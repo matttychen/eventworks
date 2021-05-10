@@ -1,0 +1,14 @@
+@font-face {
+  font-family: 'karbonM';
+  src: local('karbonM'), url(../../../fonts/karbon_medium.otf) format('otf');
+}
+
+@font-face {
+  font-family: 'karbonR';
+  src: local('karbonR'), url(../../../fonts/karbon_regular.otf) format('otf');
+}
+
+@font-face {
+  font-family: 'karbonSB';
+  src: local('karbonSB'), url(../../../fonts/karbon_semibold.otf) format('otf');
+}

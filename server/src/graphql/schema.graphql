@@ -1,0 +1,195 @@
+# GraphQL supports two basic types of request: queries and mutations. In both
+# cases, you can specify the shape of the JSON you want to get back.
+#
+# This solves both the overfetching and underfetching problems that traditional
+# REST and RPC APIs have: in one roundtrip, you get back exactly what you need,
+# no more, no less.
+#
+# Queries and mutations behave similarly, except: on the server queries may be
+# run in parallel, while mutations run one at a time. On the client, queries
+# may use a cached response, while mutations always result in a request.
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Query {
+  # Returns the logged-in user making the query, or null if anonymous.
+  self: User
+  usersAtTable(tableId: Int!): [User!]!
+  user(userId: Int!): User!
+  users: [User!]!
+
+  surveys: [Survey!]!
+  survey(surveyId: Int!): Survey
+  chatMessages(eventId: Int!, tableId: Int!, offset: Int! = 0): [ChatMessage!]!
+  events: [Event!]!
+  event(eventId: Int!, userId: Int!): Event!
+  table(tableId: Int!): [User!]
+  tableInfo(tableId: Int!): EventTable!
+}
+
+type Mutation {
+  ping(userId: Int!): String
+  # Records an answer to a survey question presented in class.
+  answerSurvey(input: SurveyInput!): Boolean!
+
+  # Moves the survey to the next question (or starts it if it hasn't started). ADMIN only.
+  nextSurveyQuestion(surveyId: Int!): Survey
+  #Creates Event from form
+  createEvent(input: EventInput!): Event!
+  # given an event id, creates new table linked to that event
+  createTable(input: EventTableInput!): EventTable
+  #below is to update an event
+  #updateEvent(id: ID!, input: EventInput!): Event!
+  updateUser(input: UserInput!): User!
+
+  sendMessage(senderId: Int!, eventId: Int!, tableId: Int!, message: String!): ChatMessage!
+  switchTable(input: SwitchTableInput!): User! # move from one table to another "atomically". Setting to table id to null will leave table.
+}
+
+type Subscription {
+  surveyUpdates(surveyId: Int!): Survey
+  chatUpdates(eventId: Int!, tableId: Int!): ChatMessage
+  tableUpdates(eventTableId: Int!): [User!]!
+}
+
+scalar Date
+
+input SwitchTableInput {
+  eventId: Int!
+  eventTableId: Int
+  participantId: Int!
+}
+
+#wrote manually
+input EventInput {
+  startTime: Date!
+  endTime: Date!
+  userCapacity: Int!
+  name: String!
+  orgName: String!
+  description: String!
+  hostId: Int! # user id
+}
+
+#wrote manually, overlaps with input above
+type Event {
+  id: Int!
+  startTime: Date!
+  endTime: Date!
+  userCapacity: Int!
+  name: String!
+  orgName: String!
+  description: String!
+  eventTables: [EventTable!]
+  host: User
+  hostId: Int!
+}
+input UserInput {
+  id: Int!
+  email: String!
+  name: String!
+  title: String
+  linkedinLink: String
+}
+type User {
+  id: Int!
+  userType: UserType!
+  email: String!
+  name: String!
+  title: String
+  linkedinLink: String
+  table: EventTable
+  tableId: Int
+  hostedEvents: [Event!]
+}
+
+enum UserType {
+  ADMIN
+  USER
+}
+
+enum EventUserPerm {
+  ATTENDEE
+  TABLELEAD
+  COHOST
+  EVENTHOST
+}
+
+type Survey {
+  id: Int!
+
+  # Pretty name for the survey.
+  name: String!
+
+  # True if the survey has started.
+  isStarted: Boolean!
+
+  # True if the survey has completed.
+  isCompleted: Boolean!
+
+  # The current survey question, or null if the survey hasn't started.
+  currentQuestion: SurveyQuestion
+
+  # All the survey's questions, in presentation order.
+  questions: [SurveyQuestion]!
+}
+
+type SurveyQuestion {
+  id: Int!
+
+  # The prompt, e.g. "how long have you been programming".
+  prompt: String!
+
+  # The choices available if multiple choice, null if not multiple choice.
+  choices: [String!]
+
+  # All answers received so far for the question.
+  answers: [SurveyAnswer!]!
+
+  # The Survey that this question is on.
+  survey: Survey!
+}
+
+type SurveyAnswer {
+  id: Int!
+  answer: String!
+  question: SurveyQuestion!
+}
+
+input SurveyInput {
+  questionId: Int!
+  answer: String!
+}
+
+type ChatMessage {
+  id: Int!
+  user: User!
+  userId: Int!
+  message: String!
+  event: Event!
+  table: EventTable!
+  tableId: Int!
+}
+
+type EventTable {
+  id: Int!
+  headId: Int!
+  head: User!
+  name: String!
+  description: String!
+  userCapacity: Int!
+  chatMessages: [ChatMessage!]!
+  participants: [User!]
+}
+
+input EventTableInput {
+  eventId: Int!
+  head: Int! # user id
+  name: String!
+  description: String!
+  userCapacity: Int
+  senderId: Int!
+}
